@@ -26,6 +26,7 @@
 #define __HELLOWORLD_SCENE_H__
 
 #include "cocos2d.h"
+#include <map>
 
 USING_NS_CC;
 
@@ -33,8 +34,9 @@ class HelloWorld : public cocos2d::Scene
 {
 public:
     //иначе tinyxml не может их схоронить
-    int coef_speed;
-    int coef_wheels;
+    float coefSpeed;
+    float coefWheels;
+    float stopDist = 0;
 
     static cocos2d::Scene* createScene();
 
@@ -57,15 +59,24 @@ public:
     //...а теперь вытаскиваем
     bool load_settings();
 
+    //алгоритм выбора тормозного пути
+    float getStopDist();
+
+    //функци€ плавности; использован метод Lerp - линейна€ интерпол€ци€
+    float Easing(float xStart, float xEnd, float time);
+
 private:
+    
     Sprite* w1;
     Sprite* w2;
     Sprite* road;
 
-    int frame_num;
-    bool KeyPressed;
+    bool keyPressed;
+    bool stop;
     Size visibleSize;
     Vec2 origin;
+    //длины тормозных путей  (в пиксел€х) с весами
+    std::map<float, float> mapStopDist = { {167.746f, 0.3f}, {293.56f, 0.3f}, {391.41f, 0.23f}, {587.112f, 0.17f} };
 };
 
 #endif // __HELLOWORLD_SCENE_H__

@@ -610,7 +610,7 @@ void XMLNode::SetValue( const char* str, bool staticMem )
     }
 }
 
-void XMLNode::SetText(int v)
+void XMLNode::SetText(float v)
 {
     char buf[200];
     XMLUtil::ToStr(v, buf, 200);

@@ -58,11 +58,12 @@ bool HelloWorld::init()
     
     if (load_settings() == false)
     {
-        coef_speed = 1;
-        coef_wheels = 1;
+        coefSpeed = 1;
+        coefWheels = 1;
     }
 
-    KeyPressed = false;
+    keyPressed = false;
+    stop = false;
 
     /////////////////////////////
     // 2. add a menu item with "X" image, which is clicked to quit the program
@@ -171,8 +172,8 @@ bool HelloWorld::init()
         this->addChild(w2, 0);
     }
 
-    w1->setScale(coef_wheels);
-    w2->setScale(coef_wheels);
+    w1->setScale(coefWheels);
+    w2->setScale(coefWheels);
 
     auto listener = EventListenerKeyboard::create();                         
     listener->onKeyPressed = CC_CALLBACK_2(HelloWorld::onKeyPressed, this); 
@@ -184,53 +185,120 @@ bool HelloWorld::init()
 void HelloWorld::onKeyPressed(EventKeyboard::KeyCode keyCode, Event* event) {
     
     switch (keyCode) {
+
+    //изменять скорость - клавиши A, D, Влево и Вправо
     case EventKeyboard::KeyCode::KEY_LEFT_ARROW:
     case EventKeyboard::KeyCode::KEY_A:
-        coef_speed -= 10;
+        coefSpeed -= 10;
         break;
     case EventKeyboard::KeyCode::KEY_RIGHT_ARROW:
     case EventKeyboard::KeyCode::KEY_D:
-        coef_speed += 10;
+        coefSpeed += 10;
         break;
+        
+    //управлять диаметром колеса - клавиши W, S, Вверх и Вниз
     case EventKeyboard::KeyCode::KEY_UP_ARROW:
     case EventKeyboard::KeyCode::KEY_W:
-        coef_wheels += 0.25;
-        KeyPressed = true;
+        coefWheels += 0.25;
+        keyPressed = true;
         break;
     case EventKeyboard::KeyCode::KEY_DOWN_ARROW:
     case EventKeyboard::KeyCode::KEY_S:
-        coef_wheels -= 0.25;
-        KeyPressed = true;
+        coefWheels -= 0.25;
+        keyPressed = true;
         break;
+    //остановка машины - пробел
     case EventKeyboard::KeyCode::KEY_SPACE:
-        coef_speed = 0;
+        stop = true;
+        break;
+    //изменять тормозной путь - клавишами 1-4
+    case EventKeyboard::KeyCode::KEY_1:
+        stopDist = mapStopDist[0];
+        break;
+    case EventKeyboard::KeyCode::KEY_2:
+        stopDist = mapStopDist[1];
+        break;
+    case EventKeyboard::KeyCode::KEY_3:
+        stopDist = mapStopDist[2];
+        break;
+    case EventKeyboard::KeyCode::KEY_4:
+        stopDist = mapStopDist[3];
         break;
     default:
         break;
     }
 }
 
-void HelloWorld::update(float delta) {
-
-    //поворот колёс
-    auto rot = w1->getRotation();
- 
-    rot += 10 * delta * coef_speed;
-    w1->setRotation(rot);
-    w2->setRotation(rot);
-    
-    //масштабирование колёс
-    if (KeyPressed)
+float HelloWorld::getStopDist()
+{
+    int weightSum = 0;
+    std::map <float, float> ::iterator it = mapStopDist.begin();
+    for (; it != mapStopDist.end(); it++) 
     {
-        w1->setScale(coef_wheels);
-        w2->setScale(coef_wheels);
+        weightSum += it->second;
     }
 
-    //движение дороги
-    if ((road->getPositionX() - coef_speed * 0.5)<= origin.x)
-        road->setPosition(Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 4 + origin.y));
+    float rnd = random(0.00f,(float)weightSum);
+
+    for (; it != mapStopDist.end(); it++) 
+    {
+        if (rnd < it->second)
+            return it->first;
+        rnd -= it->second;
+    }
+}
+
+float HelloWorld::Easing(float xStart, float xEnd, float time)
+{
+    return (xStart + (xStart - xEnd) * time);
+}
+
+void HelloWorld::update(float delta) {
+    if (stop)//если машина была остановлена
+    {
+        if (stopDist == 0) //если тормозной путь не был выбран, выбираем рандомно
+            stopDist = getStopDist();
+
+        float stopTime = stopDist / coefSpeed; //сколько времени потребуется на остановку при текущей скорости
+        float passedTime = 0; //сколько времени уже прошло
+        float roadXStart, rotStart;
+        float roadXEnd = road->getPositionX() + stopDist;
+        float rotEnd = 0.0f;
+
+        while (passedTime <= stopTime) //пока время не кончилось
+        {
+            //начальные значения поворота колеса и движения дороги
+            roadXStart = road->getPositionX();
+            rotStart = w1->getRotation();
+
+            road->setPositionX(Easing(roadXStart, roadXEnd, passedTime / stopTime)); 
+            w1->setRotation(Easing(rotStart, rotEnd, passedTime / stopTime));
+            w2->setRotation(Easing(rotStart, rotEnd, passedTime / stopTime));
+
+            passedTime += delta;
+        }
+        stop = false;
+    }
     else
-        road->setPosition(road->getPositionX() - coef_speed * 0.5, road->getPositionY());
+    {
+        //поворот колёс
+        auto rot = w1->getRotation();
+        rot += 10 * delta * coefSpeed;
+        w1->setRotation(rot);
+        w2->setRotation(rot);
+
+        //движение дороги
+        if ((road->getPositionX() - coefSpeed * 0.5) <= origin.x)
+            road->setPosition(Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 4 + origin.y));
+        else
+            road->setPositionX(road->getPositionX() - coefSpeed * 0.5);
+    }
+    //масштабирование колёс
+    if (keyPressed && coefWheels > 0)
+    {
+        w1->setScale(coefWheels);
+        w2->setScale(coefWheels);
+    }
 }
 
 void HelloWorld::save_settings()
@@ -245,9 +313,9 @@ void HelloWorld::save_settings()
 
         //перезаписываем
         XMLElement* pElement1 = doc.FirstChildElement("SETTINGS")->FirstChildElement("Speed");
-        pElement1->SetText(coef_speed);
+        pElement1->SetText(coefSpeed);
         XMLElement* pElement2 = doc.FirstChildElement("SETTINGS")->FirstChildElement("Wheels");
-        pElement2->SetText(coef_wheels);
+        pElement2->SetText(coefWheels);
     }
     
     else //если файла таки нет
@@ -258,11 +326,11 @@ void HelloWorld::save_settings()
 
         //остальные
         XMLElement* pElement1 = doc.NewElement("Speed");
-        pElement1->SetText(coef_speed);
+        pElement1->SetText(coefSpeed);
         pRoot->InsertEndChild(pElement1);
 
         XMLElement* pElement2 = doc.NewElement("Wheels");
-        pElement2->SetText(coef_wheels);
+        pElement2->SetText(coefWheels);
         pRoot->InsertEndChild(pElement2);
     }
 
@@ -283,13 +351,13 @@ bool HelloWorld::load_settings()
         if (pElement1 == nullptr)
             return false;
         else
-            pElement1->QueryIntText(&coef_speed);
+            pElement1->QueryFloatText(&coefSpeed);
 
         XMLElement* pElement2 = pRoot->FirstChildElement("Wheels");
         if (pElement2 == nullptr)
             return false;
         else
-            pElement2->QueryIntText(&coef_wheels);
+            pElement2->QueryFloatText(&coefWheels);
 
         return true;
     }

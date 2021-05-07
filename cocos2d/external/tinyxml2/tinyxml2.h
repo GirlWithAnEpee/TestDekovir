@@ -629,7 +629,7 @@ public:
     	@sa Value()
     */
     void SetValue( const char* val, bool staticMem=false );
-    void SetText(int value);
+    void SetText(float value);
 
     /// Get the parent of this node on the DOM.
     const XMLNode*	Parent() const			{
