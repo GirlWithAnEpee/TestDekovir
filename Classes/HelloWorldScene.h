@@ -30,13 +30,26 @@
 
 USING_NS_CC;
 
+struct StopInfo //для хранения необходимых для остановки данных
+{
+    float stopDist = 0;
+    float passedTime = 0; //сколько времени уже прошло с начала остановки
+    float stopTime; //сколько времени потребуется на остановку при текущей скорости
+    //начальные и конечные значения поворота колеса и движения дороги
+    float roadXStart;
+    float rotStart;
+    float roadXEnd;
+    float rotEnd = 0.0f;
+};
+
 class HelloWorld : public cocos2d::Scene
 {
 public:
     //иначе tinyxml не может их схоронить
     float coefSpeed;
     float coefWheels;
-    float stopDist = 0;
+    
+    StopInfo stopInfo;
 
     static cocos2d::Scene* createScene();
 
@@ -62,7 +75,7 @@ public:
     //алгоритм выбора тормозного пути
     float getStopDist();
 
-    //функция плавности; использован метод Lerp - линейная интерполяция
+    //функция плавности
     float Easing(float xStart, float xEnd, float time);
 
 private:
@@ -76,7 +89,7 @@ private:
     Size visibleSize;
     Vec2 origin;
     //длины тормозных путей  (в пикселях) с весами
-    std::map<float, float> mapStopDist = { {167.746f, 0.3f}, {293.56f, 0.3f}, {391.41f, 0.23f}, {587.112f, 0.17f} };
+    std::map<float, int> mapStopDist = { {167.746f, 4}, {293.56f, 3}, {391.41f, 2}, {587.112f, 5} };
 };
 
 #endif // __HELLOWORLD_SCENE_H__

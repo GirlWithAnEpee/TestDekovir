@@ -209,20 +209,35 @@ void HelloWorld::onKeyPressed(EventKeyboard::KeyCode keyCode, Event* event) {
         break;
     //остановка машины - пробел
     case EventKeyboard::KeyCode::KEY_SPACE:
+    {
         stop = true;
+        if (stopInfo.stopDist == 0) //если тормозной путь не был выбран, выбираем рандомно
+            stopInfo.stopDist = getStopDist();
+        log("stopInfo.stopDist is %f", stopInfo.stopDist);
+        stopInfo.stopTime = 2 * stopInfo.stopDist / coefSpeed;
+        log("stopInfo.stopTime is %f", stopInfo.stopTime);//сколько времени потребуется на остановку при текущей скорости
+        //начальные и конечные значения поворота колеса и движения дороги
+        stopInfo.roadXStart = road->getPositionX();
+        log("stopInfo.roadXStart is %f", stopInfo.roadXStart);
+        stopInfo.rotStart = w1->getRotation();
+        log("stopInfo.rotStart is %f", stopInfo.rotStart);
+        stopInfo.roadXEnd = stopInfo.roadXStart + stopInfo.stopDist;
+        log("stopInfo.roadXEnd is %f", stopInfo.roadXEnd);
         break;
+    }
+
     //изменять тормозной путь - клавишами 1-4
     case EventKeyboard::KeyCode::KEY_1:
-        stopDist = mapStopDist[0];
+        stopInfo.stopDist = mapStopDist[0];
         break;
     case EventKeyboard::KeyCode::KEY_2:
-        stopDist = mapStopDist[1];
+        stopInfo.stopDist = mapStopDist[1];
         break;
     case EventKeyboard::KeyCode::KEY_3:
-        stopDist = mapStopDist[2];
+        stopInfo.stopDist = mapStopDist[2];
         break;
     case EventKeyboard::KeyCode::KEY_4:
-        stopDist = mapStopDist[3];
+        stopInfo.stopDist = mapStopDist[3];
         break;
     default:
         break;
@@ -232,15 +247,15 @@ void HelloWorld::onKeyPressed(EventKeyboard::KeyCode keyCode, Event* event) {
 float HelloWorld::getStopDist()
 {
     int weightSum = 0;
-    std::map <float, float> ::iterator it = mapStopDist.begin();
-    for (; it != mapStopDist.end(); it++) 
+    
+    for (std::map <float, int> ::iterator it = mapStopDist.begin(); it != mapStopDist.end(); it++)
     {
         weightSum += it->second;
     }
 
-    float rnd = random(0.00f,(float)weightSum);
+    float rnd = rand() * weightSum / RAND_MAX;
 
-    for (; it != mapStopDist.end(); it++) 
+    for (std::map <float, int> ::iterator it = mapStopDist.begin(); it != mapStopDist.end(); it++)
     {
         if (rnd < it->second)
             return it->first;
@@ -248,50 +263,43 @@ float HelloWorld::getStopDist()
     }
 }
 
+float f(float x)
+{
+    return -2*x;
+}
+
 float HelloWorld::Easing(float xStart, float xEnd, float time)
 {
-    return (xStart + (xStart - xEnd) * time);
+    return (xStart + (xEnd - xStart) * f(time));
 }
 
 void HelloWorld::update(float delta) {
     if (stop)//если машина была остановлена
     {
-        if (stopDist == 0) //если тормозной путь не был выбран, выбираем рандомно
-            stopDist = getStopDist();
-
-        float stopTime = stopDist / coefSpeed; //сколько времени потребуется на остановку при текущей скорости
-        float passedTime = 0; //сколько времени уже прошло
-        float roadXStart, rotStart;
-        float roadXEnd = road->getPositionX() + stopDist;
-        float rotEnd = 0.0f;
-
-        while (passedTime <= stopTime) //пока время не кончилось
+        if(stopInfo.passedTime <= stopInfo.stopTime) //пока время не кончилось
         {
-            //начальные значения поворота колеса и движения дороги
-            roadXStart = road->getPositionX();
-            rotStart = w1->getRotation();
-
-            road->setPositionX(Easing(roadXStart, roadXEnd, passedTime / stopTime)); 
-            w1->setRotation(Easing(rotStart, rotEnd, passedTime / stopTime));
-            w2->setRotation(Easing(rotStart, rotEnd, passedTime / stopTime));
-
-            passedTime += delta;
+            road->setPositionX(Easing(stopInfo.roadXStart, stopInfo.roadXEnd, stopInfo.passedTime / stopInfo.stopTime));
+            w1->setRotation(10*Easing(stopInfo.rotStart, stopInfo.rotEnd, stopInfo.passedTime / stopInfo.stopTime));
+            w2->setRotation(10*Easing(stopInfo.rotStart, stopInfo.rotEnd, stopInfo.passedTime / stopInfo.stopTime));
+            stopInfo.passedTime += delta;
         }
-        stop = false;
     }
     else
     {
         //поворот колёс
-        auto rot = w1->getRotation();
-        rot += 10 * delta * coefSpeed;
-        w1->setRotation(rot);
-        w2->setRotation(rot);
+        if (coefSpeed >= 0)
+        {
+            auto rot = w1->getRotation();
+            rot += 10 * delta * coefSpeed;
+            w1->setRotation(rot);
+            w2->setRotation(rot);
 
-        //движение дороги
-        if ((road->getPositionX() - coefSpeed * 0.5) <= origin.x)
-            road->setPosition(Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 4 + origin.y));
-        else
-            road->setPositionX(road->getPositionX() - coefSpeed * 0.5);
+            //движение дороги
+            if ((road->getPositionX() - coefSpeed * 0.5) <= origin.x)
+                road->setPosition(Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 4 + origin.y));
+            else
+                road->setPositionX(road->getPositionX() - coefSpeed * 0.5);
+        }
     }
     //масштабирование колёс
     if (keyPressed && coefWheels > 0)
@@ -316,6 +324,8 @@ void HelloWorld::save_settings()
         pElement1->SetText(coefSpeed);
         XMLElement* pElement2 = doc.FirstChildElement("SETTINGS")->FirstChildElement("Wheels");
         pElement2->SetText(coefWheels);
+        XMLElement* pElement3 = doc.FirstChildElement("SETTINGS")->FirstChildElement("StopDist");
+        pElement3->SetText(stopInfo.stopDist);
     }
     
     else //если файла таки нет
@@ -332,6 +342,10 @@ void HelloWorld::save_settings()
         XMLElement* pElement2 = doc.NewElement("Wheels");
         pElement2->SetText(coefWheels);
         pRoot->InsertEndChild(pElement2);
+
+        XMLElement* pElement3 = doc.NewElement("StopDist");
+        pElement3->SetText(stopInfo.stopDist);
+        pRoot->InsertEndChild(pElement3);
     }
 
     doc.SaveFile("settings.xml");
@@ -358,6 +372,12 @@ bool HelloWorld::load_settings()
             return false;
         else
             pElement2->QueryFloatText(&coefWheels);
+        
+        XMLElement* pElement3 = pRoot->FirstChildElement("StopDist");
+        if (pElement3 == nullptr)
+            return false;
+        else
+            pElement3->QueryFloatText(&stopInfo.stopDist);
 
         return true;
     }
