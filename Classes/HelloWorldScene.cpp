@@ -113,7 +113,7 @@ bool HelloWorld::init()
         this->addChild(label, 1);
     }
 
-    road = Sprite::create("longroad.png");
+    /*road = Sprite::create("longroad.png");
 
     if (road == nullptr)
     {
@@ -126,6 +126,34 @@ bool HelloWorld::init()
 
         // add the sprite as a child to this layer
         this->addChild(road, 0);
+    }*/
+
+
+    //Vector<Sprite*> roadSection;
+    roadSections.reserve(3);
+    roadSections.pushBack(Sprite::create("longroad.png"));
+    roadSections.pushBack(Sprite::create("longroad.png"));
+    roadSections.pushBack(Sprite::create("longroad.png"));
+    //road = Sprite::create("road001.png");
+
+    if ((*roadSections.begin()) == nullptr)
+    {
+        problemLoading("'longroad.png'");
+    }
+    else
+    {
+        /*/ position the sprite on the center of the screen
+        (*roadSection.begin())->setPosition(Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 4 + origin.y));
+
+        // add the sprite as a child to this layer
+        this->addChild(*roadSection.begin(), 0);*/
+        auto xPosition = visibleSize.width / 2 + origin.x;
+        for (auto&& roadSection : roadSections)
+        {
+            roadSection->setPosition(xPosition, visibleSize.height / 4 + origin.y);
+            xPosition += roadSection->getContentSize().width;  // or you can use xPosition += sectionWidth;
+            addChild(roadSection);
+        }
     }
 
     //машина
@@ -213,16 +241,16 @@ void HelloWorld::onKeyPressed(EventKeyboard::KeyCode keyCode, Event* event) {
         stop = true;
         if (stopInfo.stopDist == 0) //если тормозной путь не был выбран, выбираем рандомно
             stopInfo.stopDist = getStopDist();
-        log("stopInfo.stopDist is %f", stopInfo.stopDist);
-        stopInfo.stopTime = 2 * stopInfo.stopDist / coefSpeed;
-        log("stopInfo.stopTime is %f", stopInfo.stopTime);//сколько времени потребуется на остановку при текущей скорости
+        stopInfo.stopTime = 2 * stopInfo.stopDist / coefSpeed;//сколько времени потребуется на остановку при текущей скорости
         //начальные и конечные значения поворота колеса и движения дороги
-        stopInfo.roadXStart = road->getPositionX();
-        log("stopInfo.roadXStart is %f", stopInfo.roadXStart);
+        int i = 0;
+        for (auto&& road : roadSections)
+        {
+            stopInfo.roadXStart[i] = road->getPositionX();
+            stopInfo.roadXEnd[i] = stopInfo.roadXStart[i] + stopInfo.stopDist;
+            i++;
+        }
         stopInfo.rotStart = w1->getRotation();
-        log("stopInfo.rotStart is %f", stopInfo.rotStart);
-        stopInfo.roadXEnd = stopInfo.roadXStart + stopInfo.stopDist;
-        log("stopInfo.roadXEnd is %f", stopInfo.roadXEnd);
         break;
     }
 
@@ -278,9 +306,21 @@ void HelloWorld::update(float delta) {
     {
         if(stopInfo.passedTime <= stopInfo.stopTime) //пока время не кончилось
         {
-            road->setPositionX(Easing(stopInfo.roadXStart, stopInfo.roadXEnd, stopInfo.passedTime / stopInfo.stopTime));
-            w1->setRotation(10*Easing(stopInfo.rotStart, stopInfo.rotEnd, stopInfo.passedTime / stopInfo.stopTime));
-            w2->setRotation(10*Easing(stopInfo.rotStart, stopInfo.rotEnd, stopInfo.passedTime / stopInfo.stopTime));
+            int i = 0;
+            for (auto&& road : roadSections)
+            {
+                road->setPositionX(Easing(stopInfo.roadXStart[i], stopInfo.roadXEnd[i], stopInfo.passedTime / stopInfo.stopTime));
+                i++;
+                //если секция находится за пределами видимости,
+                //перемещаем её в начало
+                if (road->getBoundingBox().getMaxX() < 0)
+                {
+                    road->setPositionX(road->getPositionX() + sectionWidth * roadSections.size());
+                }
+            }
+ 
+            w1->setRotation(Easing(stopInfo.rotStart, stopInfo.rotEnd, stopInfo.passedTime / stopInfo.stopTime));
+            w2->setRotation(Easing(stopInfo.rotStart, stopInfo.rotEnd, stopInfo.passedTime / stopInfo.stopTime));
             stopInfo.passedTime += delta;
         }
     }
@@ -290,15 +330,20 @@ void HelloWorld::update(float delta) {
         if (coefSpeed >= 0)
         {
             auto rot = w1->getRotation();
-            rot += 10 * delta * coefSpeed;
+            //33 пикселя - радиус колеса, умножение на 360 необходимо для перевода в градусы
+            rot += coefSpeed / (2 * 3.14 * 33) * delta * 360;
             w1->setRotation(rot);
             w2->setRotation(rot);
 
-            //движение дороги
-            if ((road->getPositionX() - coefSpeed * 0.5) <= origin.x)
-                road->setPosition(Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 4 + origin.y));
-            else
-                road->setPositionX(road->getPositionX() - coefSpeed * 0.5);
+            for (auto&& road : roadSections)
+            {
+                road->setPositionX(road->getPositionX() - coefSpeed*delta);
+                //если секция находится за пределами видимости
+                if (road->getBoundingBox().getMaxX() < 0)
+                {
+                    road->setPositionX(road->getPositionX() + sectionWidth*roadSections.size()-2);  // position the current section so it is on the other side of the screen
+                }
+            }
         }
     }
     //масштабирование колёс

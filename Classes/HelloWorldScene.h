@@ -36,9 +36,9 @@ struct StopInfo //для хранения необходимых для остановки данных
     float passedTime = 0; //сколько времени уже прошло с начала остановки
     float stopTime; //сколько времени потребуется на остановку при текущей скорости
     //начальные и конечные значения поворота колеса и движения дороги
-    float roadXStart;
+    float roadXStart[3];
     float rotStart;
-    float roadXEnd;
+    float roadXEnd[3];
     float rotEnd = 0.0f;
 };
 
@@ -82,14 +82,15 @@ private:
     
     Sprite* w1;
     Sprite* w2;
-    Sprite* road;
+    Vector<Sprite*> roadSections;
+    const int sectionWidth = 1798;
 
     bool keyPressed;
     bool stop;
     Size visibleSize;
     Vec2 origin;
-    //длины тормозных путей  (в пикселях) с весами
-    std::map<float, int> mapStopDist = { {167.746f, 4}, {293.56f, 3}, {391.41f, 2}, {587.112f, 5} };
+    //длины тормозных путей (в пикселях) с весами
+    std::map<float, int> mapStopDist = { {167.746f, 4}, {293.56f, 3}, {391.41f, 2}, {387.112f, 2} };
 };
 
 #endif // __HELLOWORLD_SCENE_H__
