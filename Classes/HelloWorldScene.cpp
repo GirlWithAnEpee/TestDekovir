@@ -113,28 +113,10 @@ bool HelloWorld::init()
         this->addChild(label, 1);
     }
 
-    /*road = Sprite::create("longroad.png");
-
-    if (road == nullptr)
-    {
-        problemLoading("'longroad.png'");
-    }
-    else
-    {
-        // position the sprite on the center of the screen
-        road->setPosition(Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 4 + origin.y));
-
-        // add the sprite as a child to this layer
-        this->addChild(road, 0);
-    }*/
-
-
-    //Vector<Sprite*> roadSection;
     roadSections.reserve(3);
     roadSections.pushBack(Sprite::create("longroad.png"));
     roadSections.pushBack(Sprite::create("longroad.png"));
     roadSections.pushBack(Sprite::create("longroad.png"));
-    //road = Sprite::create("road001.png");
 
     if ((*roadSections.begin()) == nullptr)
     {
@@ -142,11 +124,6 @@ bool HelloWorld::init()
     }
     else
     {
-        /*/ position the sprite on the center of the screen
-        (*roadSection.begin())->setPosition(Vec2(visibleSize.width / 2 + origin.x, visibleSize.height / 4 + origin.y));
-
-        // add the sprite as a child to this layer
-        this->addChild(*roadSection.begin(), 0);*/
         auto xPosition = visibleSize.width / 2 + origin.x;
         for (auto&& roadSection : roadSections)
         {
