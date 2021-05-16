@@ -308,7 +308,7 @@ void HelloWorld::update(float delta) {
         {
             auto rot = w1->getRotation();
             //33 пикселя - радиус колеса, умножение на 360 необходимо для перевода в градусы
-            rot += coefSpeed / (2 * 3.14 * 33) * delta * 360;
+            rot += coefSpeed / (2 * 3.14 * 33 * coefWheels) * delta * 360;
             w1->setRotation(rot);
             w2->setRotation(rot);
 
@@ -318,7 +318,7 @@ void HelloWorld::update(float delta) {
                 //если секция находится за пределами видимости
                 if (road->getBoundingBox().getMaxX() < 0)
                 {
-                    road->setPositionX(road->getPositionX() + sectionWidth*roadSections.size()-2);  // position the current section so it is on the other side of the screen
+                    road->setPositionX(road->getPositionX() + sectionWidth*roadSections.size()-4);  // position the current section so it is on the other side of the screen
                 }
             }
         }
