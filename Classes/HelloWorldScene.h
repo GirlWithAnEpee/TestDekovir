@@ -39,7 +39,7 @@ struct StopInfo //дл€ хранени€ необходимых дл€ остановки данных
     float roadXStart[3];
     float rotStart;
     float roadXEnd[3];
-    float rotEnd = 0.0f;
+    float rotEnd;
 };
 
 class HelloWorld : public cocos2d::Scene

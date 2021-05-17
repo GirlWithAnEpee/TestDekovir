@@ -228,6 +228,7 @@ void HelloWorld::onKeyPressed(EventKeyboard::KeyCode keyCode, Event* event) {
             i++;
         }
         stopInfo.rotStart = w1->getRotation();
+        stopInfo.rotEnd = stopInfo.rotStart - stopInfo.stopDist / (2 * 3.14 * 33 * coefWheels) * 360;
         break;
     }
 
@@ -270,7 +271,7 @@ float HelloWorld::getStopDist()
 
 float f(float x)
 {
-    return -2*x;
+    return -pow(x,0.5);
 }
 
 float HelloWorld::Easing(float xStart, float xEnd, float time)
